@@ -199,6 +199,23 @@
     </div>
 
     <script>
+        // Live log function (global scope)
+        function addLiveLog(message, type = 'info') {
+            const logDiv = document.getElementById('liveLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            };
+            const entry = document.createElement('div');
+            entry.className = `${colors[type]} animate-fade-in`;
+            entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
         // Toggle manual/auto mode
         document.querySelectorAll('input[name="mode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -266,23 +283,6 @@
             document.getElementById('results').classList.remove('hidden');
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('resultContent').classList.add('hidden');
-
-            // Add live log function
-            function addLiveLog(message, type = 'info') {
-                const logDiv = document.getElementById('liveLog');
-                const timestamp = new Date().toLocaleTimeString();
-                const colors = {
-                    info: 'text-blue-400',
-                    success: 'text-green-400',
-                    error: 'text-red-400',
-                    warning: 'text-yellow-400'
-                };
-                const entry = document.createElement('div');
-                entry.className = `${colors[type]} animate-fade-in`;
-                entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
-                logDiv.appendChild(entry);
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
 
             // Simulate live progress
             addLiveLog('🚀 Starting test...', 'info');
