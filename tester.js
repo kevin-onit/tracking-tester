@@ -183,7 +183,7 @@ function generateTestData(inputType, inputName) {
                         formActions.push(`✓ Filled: ${inputName || inputType} = ${testData}`);
                     }
 
-                    await page.waitForTimeout(300);
+                    await new Promise(resolve => setTimeout(resolve, 300));
                 } catch (e) {
                     formActions.push(`✗ Error filling field: ${e.message}`);
                 }
@@ -197,7 +197,7 @@ function generateTestData(inputType, inputName) {
                     formActions.push(`🚀 Clicking submit button: "${buttonText}"`);
                     
                     await submitButton.click();
-                    await page.waitForTimeout(3000); // Wait for submission
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                     
                     formActions.push(`✓ Form ${i + 1} submitted successfully`);
                 } catch (e) {
@@ -212,7 +212,7 @@ function generateTestData(inputType, inputName) {
         }
 
         // Take screenshot after
-        await page.waitForTimeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
         const screenshotAfter = await page.screenshot({ encoding: 'base64', fullPage: false });
 
         // Compile results
