@@ -27,9 +27,9 @@ function generateTestData(inputType, inputName) {
             return 'Kevin';
         }
         if (lowerName.includes('last') || lowerName.includes('achter')) {
-            return 'de Vries';
+            return 'de Vette';
         }
-        return 'Kevin de Vries';
+        return 'Kevin de Vette';
     }
     if (lowerName.includes('address') || lowerName.includes('adres') || lowerName.includes('street')) {
         return 'Teststraat 123';
@@ -143,6 +143,12 @@ function generateTestData(inputType, inputName) {
         // Navigate to page
         await page.goto(config.url, { waitUntil: 'networkidle0', timeout: 30000 });
         
+        // Get page info
+        const pageTitle = await page.title();
+        const pageUrl = page.url();
+        formActions.push(`📄 Loaded: ${pageTitle}`);
+        formActions.push(`🌐 URL: ${pageUrl}`);
+        
         // Take screenshot before
         const screenshotBefore = await page.screenshot({ encoding: 'base64', fullPage: false });
 
@@ -153,9 +159,21 @@ function generateTestData(inputType, inputName) {
         for (let i = 0; i < forms.length; i++) {
             const form = forms[i];
             
+            // Get form details
+            const formInfo = await form.evaluate(el => ({
+                id: el.id || '',
+                name: el.name || '',
+                action: el.action || '',
+                class: el.className || ''
+            }));
+            
+            let formLabel = `Form ${i + 1}`;
+            if (formInfo.id) formLabel += ` (id: ${formInfo.id})`;
+            if (formInfo.name) formLabel += ` (name: ${formInfo.name})`;
+            
             // Get all input fields in this form
             const inputs = await form.$$('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
-            formActions.push(`Form ${i + 1}: Found ${inputs.length} fillable field(s)`);
+            formActions.push(`${formLabel}: Found ${inputs.length} fillable field(s)`);
 
             // Fill each input
             for (const input of inputs) {
