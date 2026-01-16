@@ -116,6 +116,73 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
     return false;
 }
 
+// Detect which tools are being used
+function getDetectedTools(trackingEvents) {
+    const tools = new Set();
+    
+    trackingEvents.forEach(event => {
+        if (event.platform.includes('Google Tag Manager')) {
+            tools.add('Google Tag Manager');
+        }
+        if (event.platform.includes('Google Analytics')) {
+            tools.add('Google Analytics 4');
+        }
+        if (event.platform.includes('Google Ads')) {
+            tools.add('Google Ads');
+        }
+        if (event.platform.includes('Facebook')) {
+            tools.add('Meta Pixel');
+        }
+    });
+    
+    return Array.from(tools);
+}
+
+// Detect if redirected to thank you page
+async function detectThankYouPage(page, originalUrl) {
+    const currentUrl = page.url();
+    const pageTitle = await page.title();
+    const pageText = await page.evaluate(() => document.body.textContent || '').then(t => t.toLowerCase());
+    
+    // Check URL change
+    const urlChanged = currentUrl !== originalUrl;
+    
+    // Check for thank you indicators
+    const thankYouKeywords = [
+        'bedankt', 'thank you', 'thanks', 'dank u', 'dank je',
+        'gelukt', 'succes', 'ontvangen', 'received', 'confirmation',
+        'bevestiging', 'verzonden', 'submitted'
+    ];
+    
+    const hasThankYouUrl = thankYouKeywords.some(keyword => 
+        currentUrl.toLowerCase().includes(keyword)
+    );
+    
+    const hasThankYouTitle = thankYouKeywords.some(keyword => 
+        pageTitle.toLowerCase().includes(keyword)
+    );
+    
+    const hasThankYouText = thankYouKeywords.some(keyword => 
+        pageText.includes(keyword)
+    );
+    
+    if (urlChanged || hasThankYouUrl || hasThankYouTitle || hasThankYouText) {
+        return {
+            detected: true,
+            url: currentUrl,
+            title: pageTitle,
+            urlChanged: urlChanged,
+            indicators: {
+                thankYouUrl: hasThankYouUrl,
+                thankYouTitle: hasThankYouTitle,
+                thankYouContent: hasThankYouText
+            }
+        };
+    }
+    
+    return { detected: false };
+}
+
 (async () => {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
     
@@ -478,7 +545,9 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                 method: r.method,
                 url: r.url,
                 status: 200
-            })).slice(-50)
+            })).slice(-50),
+            detectedTools: getDetectedTools(trackingEvents),
+            thankYouPage: await detectThankYouPage(page, pageUrl)
         };
 
         console.log(JSON.stringify(result));

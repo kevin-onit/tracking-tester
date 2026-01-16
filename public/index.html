@@ -189,6 +189,21 @@
                     </div>
 
                     <div id="resultContent" class="hidden">
+                        <!-- Detected Tools & Thank You Page -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <!-- Detected Tools -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="font-semibold mb-3 text-blue-900">🛠️ Gedetecteerde Tools</h3>
+                                <div id="detectedTools" class="space-y-2"></div>
+                            </div>
+                            
+                            <!-- Thank You Page -->
+                            <div id="thankYouPageCard" class="border rounded-lg p-4">
+                                <h3 class="font-semibold mb-3">📄 Bedankt Pagina</h3>
+                                <div id="thankYouPage"></div>
+                            </div>
+                        </div>
+
                         <!-- Screenshots -->
                         <div class="mb-6">
                             <h3 class="font-semibold mb-3">📸 Screenshots</h3>
@@ -360,6 +375,55 @@
                     if (action.includes('⚠')) type = 'warning';
                     addLiveLog(action, type);
                 });
+            }
+
+            // Detected Tools
+            const toolsDiv = document.getElementById('detectedTools');
+            const toolIcons = {
+                'Google Tag Manager': '📦',
+                'Google Analytics 4': '📊',
+                'Google Ads': '💰',
+                'Meta Pixel': '📘'
+            };
+            
+            if (data.detectedTools && data.detectedTools.length > 0) {
+                toolsDiv.innerHTML = data.detectedTools.map(tool => `
+                    <div class="flex items-center space-x-2 text-sm bg-white rounded-lg p-2 border border-blue-200">
+                        <span class="text-xl">${toolIcons[tool] || '🔧'}</span>
+                        <span class="font-medium text-gray-800">${tool}</span>
+                    </div>
+                `).join('');
+            } else {
+                toolsDiv.innerHTML = '<p class="text-sm text-gray-600">Geen tracking tools gedetecteerd</p>';
+            }
+
+            // Thank You Page
+            const thankYouDiv = document.getElementById('thankYouPage');
+            const thankYouCard = document.getElementById('thankYouPageCard');
+            
+            if (data.thankYouPage && data.thankYouPage.detected) {
+                thankYouCard.className = 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4';
+                thankYouDiv.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-green-900">Gedetecteerd!</span>
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <strong>URL:</strong> ${data.thankYouPage.url}<br>
+                            <strong>Titel:</strong> ${data.thankYouPage.title}
+                        </div>
+                        ${data.thankYouPage.urlChanged ? '<div class="text-xs text-green-600 mt-1">✓ URL veranderd na submit</div>' : ''}
+                    </div>
+                `;
+            } else {
+                thankYouCard.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4';
+                thankYouDiv.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">❌</span>
+                        <span class="text-sm text-gray-600">Geen bedankt pagina gedetecteerd</span>
+                    </div>
+                `;
             }
 
             // Screenshots
