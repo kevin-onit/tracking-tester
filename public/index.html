@@ -109,6 +109,16 @@
                                 </div>
                             </div>
 
+                            <div class="border-t pt-4">
+                                <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="useAI" value="true" checked class="w-5 h-5 text-blue-600">
+                                    <div>
+                                        <div class="font-medium">🤖 AI Navigation (Experimenteel)</div>
+                                        <div class="text-sm text-gray-600">Als geen formulieren gevonden, zoekt AI automatisch naar contact pagina's</div>
+                                    </div>
+                                </label>
+                            </div>
+
                             <button 
                                 type="submit"
                                 class="w-full py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
@@ -277,6 +287,9 @@
                     }
                 }
             }
+
+            // Add AI navigation setting
+            data.useAI = formData.get('useAI') === 'true';
 
             // Show live ticker and results section
             document.getElementById('liveTicker').classList.remove('hidden');

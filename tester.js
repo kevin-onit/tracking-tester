@@ -1,6 +1,12 @@
 const puppeteer = require('puppeteer');
 const chromium = require('@sparticuz/chromium');
 const fs = require('fs');
+const OpenAI = require('openai');
+
+// Initialize OpenAI (optional - only if API key provided)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+}) : null;
 
 // Get config file from command line
 const configFile = process.argv[2];
@@ -53,6 +59,61 @@ function generateTestData(inputType, inputName) {
     if (inputType === 'number') return '1';
     
     return 'Test data';
+}
+
+// AI-powered navigation to find contact forms
+async function findContactFormWithAI(page, formActions) {
+    if (!openai) {
+        formActions.push('ℹ️ AI navigation disabled (no API key)');
+        return false;
+    }
+
+    try {
+        formActions.push('🤖 AI: Analyzing page for contact links...');
+        
+        // Get all links on the page
+        const links = await page.evaluate(() => {
+            const allLinks = Array.from(document.querySelectorAll('a[href]'));
+            return allLinks.map(link => ({
+                text: link.textContent.trim(),
+                href: link.href,
+                title: link.title || ''
+            })).filter(l => l.text.length > 0 && l.text.length < 100);
+        });
+
+        if (links.length === 0) return false;
+
+        // Ask AI which link is most likely to lead to a contact form
+        const prompt = `Je bent een website navigator. Welke van deze links leidt waarschijnlijk naar een contactformulier of offerte aanvraagpagina?
+
+Links:
+${links.slice(0, 20).map((l, i) => `${i + 1}. "${l.text}" (${l.href})`).join('\n')}
+
+Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. Geen uitleg.`;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3,
+            max_tokens: 10
+        });
+
+        const answer = completion.choices[0].message.content.trim();
+        const linkIndex = parseInt(answer) - 1;
+
+        if (linkIndex >= 0 && linkIndex < links.length) {
+            const selectedLink = links[linkIndex];
+            formActions.push(`🤖 AI: Found contact link: "${selectedLink.text}"`);
+            formActions.push(`🔗 Navigating to: ${selectedLink.href}`);
+            
+            await page.goto(selectedLink.href, { waitUntil: 'networkidle0', timeout: 30000 });
+            return true;
+        }
+    } catch (error) {
+        formActions.push(`⚠️ AI navigation failed: ${error.message}`);
+    }
+    
+    return false;
 }
 
 (async () => {
@@ -153,8 +214,26 @@ function generateTestData(inputType, inputName) {
         const screenshotBefore = await page.screenshot({ encoding: 'base64', fullPage: false });
 
         // AUTO-DETECT AND FILL ALL FORMS
-        const forms = await page.$$('form');
+        let forms = await page.$$('form');
         formActions.push(`Found ${forms.length} form(s) on the page`);
+
+        // If no forms found, try AI navigation to find contact page
+        if (forms.length === 0 && config.useAI !== false) {
+            formActions.push(`🤖 No forms found, trying AI navigation...`);
+            const navigated = await findContactFormWithAI(page, formActions);
+            
+            if (navigated) {
+                // Update page info after navigation
+                const newPageTitle = await page.title();
+                const newPageUrl = page.url();
+                formActions.push(`📄 New page: ${newPageTitle}`);
+                formActions.push(`🌐 New URL: ${newPageUrl}`);
+                
+                // Check for forms again
+                forms = await page.$$('form');
+                formActions.push(`Found ${forms.length} form(s) on new page`);
+            }
+        }
 
         for (let i = 0; i < forms.length; i++) {
             const form = forms[i];
