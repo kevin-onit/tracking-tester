@@ -207,22 +207,57 @@ function generateTestData(inputType, inputName) {
                 }
             }
 
-            // Find and click submit button
-            const submitButton = await form.$('button[type="submit"], input[type="submit"], button:not([type])');
+            // Find and click submit button with better detection
+            let submitButton = await form.$('button[type="submit"], input[type="submit"]');
+            
+            // Fallback: look for button without type
+            if (!submitButton) {
+                submitButton = await form.$('button:not([type="button"]):not([type="reset"])');
+            }
+            
+            // Fallback: look for any button with submit-like text
+            if (!submitButton) {
+                const buttons = await form.$$('button, input[type="button"]');
+                for (const btn of buttons) {
+                    const text = await btn.evaluate(el => (el.textContent || el.value || '').toLowerCase());
+                    if (text.includes('submit') || text.includes('send') || text.includes('verzend') || 
+                        text.includes('verstuur') || text.includes('aanvragen') || text.includes('contact')) {
+                        submitButton = btn;
+                        break;
+                    }
+                }
+            }
+            
             if (submitButton) {
                 try {
                     const buttonText = await submitButton.evaluate(el => el.textContent || el.value || 'Submit');
-                    formActions.push(`🚀 Clicking submit button: "${buttonText}"`);
+                    const isVisible = await submitButton.isVisible();
                     
-                    await submitButton.click();
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    
-                    formActions.push(`✓ Form ${i + 1} submitted successfully`);
+                    if (!isVisible) {
+                        formActions.push(`⚠ Submit button found but not visible: "${buttonText}"`);
+                    } else {
+                        formActions.push(`🚀 Clicking submit button: "${buttonText}"`);
+                        
+                        await submitButton.click();
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        formActions.push(`✓ Form ${i + 1} submitted successfully`);
+                    }
                 } catch (e) {
                     formActions.push(`✗ Could not submit form ${i + 1}: ${e.message}`);
                 }
             } else {
-                formActions.push(`⚠ No submit button found in form ${i + 1}`);
+                // Debug: show what buttons are available
+                const allButtons = await form.$$('button, input[type="submit"], input[type="button"]');
+                formActions.push(`⚠ No submit button found in form ${i + 1} (found ${allButtons.length} button(s) total)`);
+                
+                // Try to list button texts for debugging
+                for (let j = 0; j < Math.min(allButtons.length, 3); j++) {
+                    const btnText = await allButtons[j].evaluate(el => {
+                        return `${el.tagName} type="${el.type || 'none'}" text="${(el.textContent || el.value || '').trim().substring(0, 30)}"`;
+                    });
+                    formActions.push(`  Button ${j + 1}: ${btnText}`);
+                }
             }
 
             // Only submit first form for now
