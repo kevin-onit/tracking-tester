@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const chromium = require('@sparticuz/chromium');
 const fs = require('fs');
 
 // Get config file from command line
@@ -55,9 +56,11 @@ function generateTestData(inputType, inputName) {
 }
 
 (async () => {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
+    
     const browser = await puppeteer.launch({
         headless: config.headless !== false ? 'new' : false,
-        args: [
+        args: isProduction ? chromium.args : [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
@@ -66,8 +69,8 @@ function generateTestData(inputType, inputName) {
             '--no-zygote',
             '--disable-gpu'
         ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        slowMo: config.headless === false ? 100 : 0 // Slow down if visible
+        executablePath: isProduction ? await chromium.executablePath() : puppeteer.executablePath(),
+        slowMo: config.headless === false ? 100 : 0
     });
 
     const page = await browser.newPage();
