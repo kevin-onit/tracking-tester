@@ -261,8 +261,15 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                 id: el.id || '',
                 name: el.name || '',
                 action: el.action || '',
-                class: el.className || ''
+                class: el.className || '',
+                visible: el.offsetParent !== null && el.offsetHeight > 0
             }));
+            
+            // Skip hidden forms
+            if (!formInfo.visible) {
+                formActions.push(`⏭️ Skipping hidden form ${i + 1}`);
+                continue;
+            }
             
             let formLabel = `Form ${i + 1}`;
             if (formInfo.id) formLabel += ` (id: ${formInfo.id})`;
@@ -270,6 +277,13 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
             
             // Get all input fields in this form
             const inputs = await form.$$('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+            
+            // Skip forms with no visible inputs
+            if (inputs.length === 0) {
+                formActions.push(`⏭️ Skipping ${formLabel}: No fillable fields`);
+                continue;
+            }
+            
             formActions.push(`${formLabel}: Found ${inputs.length} fillable field(s)`);
 
             // Fill each input
@@ -280,6 +294,18 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                     const isVisible = await input.isVisible();
 
                     if (!isVisible) continue;
+
+                    // Skip honeypot fields
+                    const label = await input.evaluate(el => {
+                        const labelEl = el.labels?.[0] || document.querySelector(`label[for="${el.id}"]`);
+                        return labelEl?.textContent || '';
+                    });
+                    if (label.toLowerCase().includes('mens bent') || 
+                        label.toLowerCase().includes('human') ||
+                        label.toLowerCase().includes('leave this field blank')) {
+                        formActions.push(`⏭️ Skipping honeypot field: ${inputName}`);
+                        continue;
+                    }
 
                     const testData = generateTestData(inputType, inputName);
                     
@@ -329,9 +355,26 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                 try {
                     const buttonText = await submitButton.evaluate(el => el.textContent || el.value || 'Submit');
                     const isVisible = await submitButton.isVisible();
+                    const isDisabled = await submitButton.evaluate(el => el.disabled);
                     
                     if (!isVisible) {
                         formActions.push(`⚠ Submit button found but not visible: "${buttonText}"`);
+                    } else if (isDisabled) {
+                        formActions.push(`⚠️ Submit button disabled: "${buttonText}", enabling...`);
+                        
+                        // Try to enable the button
+                        await submitButton.evaluate(el => {
+                            el.disabled = false;
+                            el.removeAttribute('disabled');
+                        });
+                        
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        formActions.push(`🚀 Clicking submit button: "${buttonText}"`);
+                        await submitButton.click();
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        formActions.push(`✓ Form ${i + 1} submitted successfully`);
                     } else {
                         formActions.push(`🚀 Clicking submit button: "${buttonText}"`);
                         
