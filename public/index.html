@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracking Tester Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        #liveLog::-webkit-scrollbar {
+            width: 8px;
+        }
+        #liveLog::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        #liveLog::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen py-8">
@@ -14,7 +33,7 @@
                 <p class="text-gray-600">Test jouw website tracking in enkele seconden</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <!-- Input Section -->
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-lg shadow-md p-6">
@@ -100,15 +119,29 @@
                     </div>
                 </div>
 
-                <!-- Info Section -->
-                <div class="space-y-6">
+                <!-- Info + Live Ticker Section -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Live Ticker -->
+                    <div id="liveTicker" class="bg-white rounded-lg shadow-md p-6 hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-900">🔴 Live Progress</h3>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                <span class="text-sm text-gray-600">Running...</span>
+                            </div>
+                        </div>
+                        <div id="liveLog" class="bg-gray-900 rounded-lg p-4 h-96 overflow-y-auto font-mono text-sm space-y-1">
+                            <!-- Live log entries will appear here -->
+                        </div>
+                    </div>
+
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 class="font-semibold text-blue-900 mb-2">💡 Hoe werkt het?</h3>
                         <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                             <li>Vul de URL van je website in</li>
-                            <li>Voeg formulier velden toe</li>
+                            <li>Kies automatisch of handmatig</li>
                             <li>Klik op "Start Test"</li>
-                            <li>Bekijk alle tracking events</li>
+                            <li>Zie live wat er gebeurt →</li>
                         </ol>
                     </div>
 
@@ -228,10 +261,37 @@
                 }
             }
 
-            // Show results section
+            // Show live ticker and results section
+            document.getElementById('liveTicker').classList.remove('hidden');
             document.getElementById('results').classList.remove('hidden');
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('resultContent').classList.add('hidden');
+
+            // Add live log function
+            function addLiveLog(message, type = 'info') {
+                const logDiv = document.getElementById('liveLog');
+                const timestamp = new Date().toLocaleTimeString();
+                const colors = {
+                    info: 'text-blue-400',
+                    success: 'text-green-400',
+                    error: 'text-red-400',
+                    warning: 'text-yellow-400'
+                };
+                const entry = document.createElement('div');
+                entry.className = `${colors[type]} animate-fade-in`;
+                entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+
+            // Simulate live progress
+            addLiveLog('🚀 Starting test...', 'info');
+            addLiveLog(`📍 URL: ${data.url}`, 'info');
+            addLiveLog('🌐 Opening browser...', 'info');
+            
+            setTimeout(() => addLiveLog('✓ Browser opened', 'success'), 500);
+            setTimeout(() => addLiveLog('📄 Loading page...', 'info'), 1000);
+            setTimeout(() => addLiveLog('🔍 Scanning for forms...', 'info'), 2000);
 
             try {
                 const response = await fetch('/api/test', {
@@ -245,11 +305,18 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    // Add completion logs
+                    addLiveLog('✅ Test completed!', 'success');
+                    addLiveLog(`📊 Found ${result.data.events?.length || 0} tracking events`, 'success');
+                    addLiveLog(`📝 Performed ${result.data.actions?.length || 0} actions`, 'success');
+                    
                     displayResults(result.data);
                 } else {
+                    addLiveLog('❌ Test failed: ' + result.error, 'error');
                     alert('Error: ' + result.error);
                 }
             } catch (error) {
+                addLiveLog('❌ Error: ' + error.message, 'error');
                 alert('Er ging iets mis: ' + error.message);
             }
 
@@ -258,6 +325,18 @@
 
         function displayResults(data) {
             document.getElementById('resultContent').classList.remove('hidden');
+
+            // Add actions to live log
+            if (data.actions) {
+                data.actions.forEach(action => {
+                    let type = 'info';
+                    if (action.includes('✓')) type = 'success';
+                    if (action.includes('✗')) type = 'error';
+                    if (action.includes('🚀')) type = 'info';
+                    if (action.includes('⚠')) type = 'warning';
+                    addLiveLog(action, type);
+                });
+            }
 
             // Screenshots
             const screenshotsDiv = document.getElementById('screenshots');
