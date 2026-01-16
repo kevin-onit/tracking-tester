@@ -363,10 +363,15 @@
         });
 
         function displayResults(data) {
+            if (!data) {
+                console.error('No data received');
+                return;
+            }
+            
             document.getElementById('resultContent').classList.remove('hidden');
 
             // Add actions to live log
-            if (data.actions) {
+            if (data.actions && Array.isArray(data.actions)) {
                 data.actions.forEach(action => {
                     let type = 'info';
                     if (action.includes('✓')) type = 'success';
@@ -386,7 +391,7 @@
                 'Meta Pixel': '📘'
             };
             
-            if (data.detectedTools && data.detectedTools.length > 0) {
+            if (data.detectedTools && Array.isArray(data.detectedTools) && data.detectedTools.length > 0) {
                 toolsDiv.innerHTML = data.detectedTools.map(tool => `
                     <div class="flex items-center space-x-2 text-sm bg-white rounded-lg p-2 border border-blue-200">
                         <span class="text-xl">${toolIcons[tool] || '🔧'}</span>
@@ -428,45 +433,49 @@
 
             // Screenshots
             const screenshotsDiv = document.getElementById('screenshots');
-            screenshotsDiv.innerHTML = data.screenshots.map(img => `
-                <div class="border rounded-lg p-2">
-                    <img src="${img}" class="w-full rounded" alt="Screenshot">
-                </div>
-            `).join('');
+            if (data.screenshots && Array.isArray(data.screenshots)) {
+                screenshotsDiv.innerHTML = data.screenshots.map(img => `
+                    <div class="border rounded-lg p-2">
+                        <img src="${img}" class="w-full rounded" alt="Screenshot">
+                    </div>
+                `).join('');
+            }
 
             // Events
             const eventsDiv = document.getElementById('events');
-            eventsDiv.innerHTML = data.events.map(event => `
-                <div class="border rounded-lg p-4 ${event.status === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold">${event.platform}</span>
-                        <span class="px-2 py-1 rounded text-xs ${event.status === 'success' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                            ${event.status}
-                        </span>
+            if (data.events && Array.isArray(data.events)) {
+                eventsDiv.innerHTML = data.events.map(event => `
+                    <div class="border rounded-lg p-4 ${event.status === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold">${event.platform}</span>
+                            <span class="px-2 py-1 rounded text-xs ${event.status === 'success' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                                ${event.status}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <strong>Event:</strong> ${event.event_name}<br>
+                            ${event.details ? `<strong>Details:</strong> ${event.details}<br>` : ''}
+                        </div>
+                        ${event.data && Object.keys(event.data).length > 0 ? `
+                            <details class="mt-2">
+                                <summary class="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">
+                                    📊 Bekijk verzonden data
+                                </summary>
+                                <div class="mt-2 p-2 bg-white rounded border text-xs font-mono">
+                                    ${Object.entries(event.data)
+                                        .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+                                        .map(([key, value]) => `
+                                            <div class="py-1">
+                                                <span class="text-gray-600">${key}:</span> 
+                                                <span class="text-gray-900">${value}</span>
+                                            </div>
+                                        `).join('')}
+                                </div>
+                            </details>
+                        ` : ''}
                     </div>
-                    <div class="text-sm text-gray-700">
-                        <strong>Event:</strong> ${event.event_name}<br>
-                        ${event.details ? `<strong>Details:</strong> ${event.details}<br>` : ''}
-                    </div>
-                    ${event.data && Object.keys(event.data).length > 0 ? `
-                        <details class="mt-2">
-                            <summary class="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">
-                                📊 Bekijk verzonden data
-                            </summary>
-                            <div class="mt-2 p-2 bg-white rounded border text-xs font-mono">
-                                ${Object.entries(event.data)
-                                    .filter(([key, value]) => value !== null && value !== undefined && value !== '')
-                                    .map(([key, value]) => `
-                                        <div class="py-1">
-                                            <span class="text-gray-600">${key}:</span> 
-                                            <span class="text-gray-900">${value}</span>
-                                        </div>
-                                    `).join('')}
-                            </div>
-                        </details>
-                    ` : ''}
-                </div>
-            `).join('');
+                `).join('');
+            }
 
             // Actions log
             if (data.actions) {
