@@ -311,8 +311,9 @@ async function detectThankYouPage(page, originalUrl) {
         await page.goto(config.url, { waitUntil: 'networkidle0', timeout: 30000 });
         
         // Check for captcha/challenge pages
-        const pageTitle = await page.title();
-        const pageUrl = page.url();
+        let pageTitle = await page.title();
+        let pageUrl = page.url();
+        let originalPageUrl = pageUrl;
         
         if (pageTitle.toLowerCase().includes('robot') || 
             pageTitle.toLowerCase().includes('challenge') ||
@@ -325,10 +326,11 @@ async function detectThankYouPage(page, originalUrl) {
             await new Promise(resolve => setTimeout(resolve, 5000));
             await page.reload({ waitUntil: 'networkidle0', timeout: 30000 });
             
-            const newTitle = await page.title();
-            const newUrl = page.url();
-            formActions.push(`📄 After refresh: ${newTitle}`);
-            formActions.push(`🌐 URL: ${newUrl}`);
+            pageTitle = await page.title();
+            pageUrl = page.url();
+            originalPageUrl = pageUrl;
+            formActions.push(`📄 After refresh: ${pageTitle}`);
+            formActions.push(`🌐 URL: ${pageUrl}`);
         } else {
             formActions.push(`📄 Loaded: ${pageTitle}`);
             formActions.push(`🌐 URL: ${pageUrl}`);
@@ -547,17 +549,18 @@ async function detectThankYouPage(page, originalUrl) {
                 status: 200
             })).slice(-50),
             detectedTools: getDetectedTools(trackingEvents),
-            thankYouPage: await detectThankYouPage(page, pageUrl)
+            thankYouPage: await detectThankYouPage(page, originalPageUrl)
         };
 
         console.log(JSON.stringify(result));
 
     } catch (error) {
         console.error(JSON.stringify({
-            error: error.message,
+            error: error.message || 'Unknown error',
+            stack: error.stack,
             screenshots: [],
             events: [],
-            actions: [`Error: ${error.message}`],
+            actions: [`❌ Error: ${error.message || 'Unknown error'}`],
             requests: []
         }));
         process.exit(1);
