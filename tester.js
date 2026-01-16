@@ -204,11 +204,29 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
         // Navigate to page
         await page.goto(config.url, { waitUntil: 'networkidle0', timeout: 30000 });
         
-        // Get page info
+        // Check for captcha/challenge pages
         const pageTitle = await page.title();
         const pageUrl = page.url();
-        formActions.push(`📄 Loaded: ${pageTitle}`);
-        formActions.push(`🌐 URL: ${pageUrl}`);
+        
+        if (pageTitle.toLowerCase().includes('robot') || 
+            pageTitle.toLowerCase().includes('challenge') ||
+            pageTitle.toLowerCase().includes('captcha') ||
+            pageUrl.includes('sgcaptcha') ||
+            pageUrl.includes('challenge')) {
+            formActions.push(`⚠️ Captcha detected: ${pageTitle}`);
+            formActions.push(`🔄 Waiting 5 seconds and refreshing...`);
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            await page.reload({ waitUntil: 'networkidle0', timeout: 30000 });
+            
+            const newTitle = await page.title();
+            const newUrl = page.url();
+            formActions.push(`📄 After refresh: ${newTitle}`);
+            formActions.push(`🌐 URL: ${newUrl}`);
+        } else {
+            formActions.push(`📄 Loaded: ${pageTitle}`);
+            formActions.push(`🌐 URL: ${pageUrl}`);
+        }
         
         // Take screenshot before
         const screenshotBefore = await page.screenshot({ encoding: 'base64', fullPage: false });
