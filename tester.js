@@ -166,28 +166,66 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
             let platform = 'Unknown';
             let eventName = '';
             let details = '';
+            let sentData = {};
 
             if (url.includes('google-analytics.com/g/collect')) {
                 platform = 'Google Analytics 4';
                 const urlParams = new URL(url);
                 eventName = urlParams.searchParams.get('en') || 'page_view';
                 details = `Event ID: ${urlParams.searchParams.get('_s')}`;
+                
+                // Extract sent data
+                sentData = {
+                    event_name: eventName,
+                    measurement_id: urlParams.searchParams.get('tid'),
+                    client_id: urlParams.searchParams.get('cid'),
+                    session_id: urlParams.searchParams.get('sid'),
+                    user_id: urlParams.searchParams.get('uid'),
+                    currency: urlParams.searchParams.get('cu'),
+                    value: urlParams.searchParams.get('ev'),
+                    // Enhanced conversions data
+                    email: urlParams.searchParams.get('ep.sha256_email_address'),
+                    phone: urlParams.searchParams.get('ep.sha256_phone_number')
+                };
             } else if (url.includes('googletagmanager.com/gtm.js')) {
                 platform = 'Google Tag Manager';
                 eventName = 'GTM Container Loaded';
                 const match = url.match(/id=(GTM-[A-Z0-9]+)/);
-                if (match) details = match[1];
+                if (match) {
+                    details = match[1];
+                    sentData = { container_id: match[1] };
+                }
             } else if (url.includes('googleadservices.com/pagead/conversion')) {
                 platform = 'Google Ads';
                 eventName = 'Conversion';
-                const match = url.match(/label=([^&]+)/);
-                if (match) details = `Label: ${match[1]}`;
+                const urlParams = new URL(url);
+                const label = urlParams.searchParams.get('label');
+                const conversionId = urlParams.searchParams.get('id');
+                if (label) details = `Label: ${label}`;
+                
+                sentData = {
+                    conversion_id: conversionId,
+                    conversion_label: label,
+                    value: urlParams.searchParams.get('value'),
+                    currency: urlParams.searchParams.get('currency_code')
+                };
             } else if (url.includes('facebook.com/tr')) {
                 platform = 'Facebook Pixel';
-                const match = url.match(/ev=([^&]+)/);
-                eventName = match ? match[1] : 'PageView';
-                const idMatch = url.match(/id=(\d+)/);
-                if (idMatch) details = `Pixel ID: ${idMatch[1]}`;
+                const urlParams = new URL(url);
+                const match = urlParams.searchParams.get('ev');
+                eventName = match || 'PageView';
+                const idMatch = urlParams.searchParams.get('id');
+                if (idMatch) details = `Pixel ID: ${idMatch}`;
+                
+                sentData = {
+                    pixel_id: idMatch,
+                    event: eventName,
+                    // User data (hashed)
+                    em: urlParams.searchParams.get('ud[em]'),
+                    ph: urlParams.searchParams.get('ud[ph]'),
+                    fn: urlParams.searchParams.get('ud[fn]'),
+                    ln: urlParams.searchParams.get('ud[ln]')
+                };
             }
 
             trackingEvents.push({
@@ -195,7 +233,8 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                 event_name: eventName,
                 details,
                 url: url.substring(0, 100),
-                status: status < 400 ? 'success' : 'failed'
+                status: status < 400 ? 'success' : 'failed',
+                data: sentData
             });
         }
     });
@@ -271,7 +310,26 @@ Antwoord ALLEEN met het nummer van de beste link, of "0" als geen goede optie. G
                 continue;
             }
             
+            // Detect newsletter forms
+            const formText = await form.evaluate(el => {
+                const allText = el.textContent || '';
+                return allText.toLowerCase();
+            });
+            
+            const isNewsletter = formText.includes('nieuwsbrief') || 
+                                formText.includes('newsletter') || 
+                                formText.includes('inschrijven') ||
+                                formText.includes('subscribe') ||
+                                (formInfo.id && formInfo.id.toLowerCase().includes('newsletter')) ||
+                                (formInfo.class && formInfo.class.toLowerCase().includes('newsletter'));
+            
+            if (isNewsletter && config.skipNewsletters) {
+                formActions.push(`📰 Skipping newsletter form ${i + 1}`);
+                continue;
+            }
+            
             let formLabel = `Form ${i + 1}`;
+            if (isNewsletter) formLabel += ` 📰 (Newsletter)`;
             if (formInfo.id) formLabel += ` (id: ${formInfo.id})`;
             if (formInfo.name) formLabel += ` (name: ${formInfo.name})`;
             

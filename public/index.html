@@ -111,6 +111,16 @@
 
                             <div class="border-t pt-4">
                                 <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" name="skipNewsletters" value="true" class="w-5 h-5 text-blue-600">
+                                    <div>
+                                        <div class="font-medium">📰 Skip Nieuwsbrief Formulieren</div>
+                                        <div class="text-sm text-gray-600">Sla nieuwsbrief inschrijvingen over tijdens het testen</div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="border-t pt-4">
+                                <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                                     <input type="checkbox" name="useAI" value="true" checked class="w-5 h-5 text-blue-600">
                                     <div>
                                         <div class="font-medium">🤖 AI Navigation (Experimenteel)</div>
@@ -290,6 +300,7 @@
 
             // Add AI navigation setting
             data.useAI = formData.get('useAI') === 'true';
+            data.skipNewsletters = formData.get('skipNewsletters') === 'true';
 
             // Show live ticker and results section
             document.getElementById('liveTicker').classList.remove('hidden');
@@ -371,7 +382,27 @@
                     </div>
                     <div class="text-sm text-gray-700">
                         <strong>Event:</strong> ${event.event_name}<br>
-                        ${event.details ? `<strong>Details:</strong> ${event.details}` : ''}
+                        ${event.details ? `<strong>Details:</strong> ${event.details}<br>` : ''}
+                    </div>
+                    ${event.data && Object.keys(event.data).length > 0 ? `
+                        <details class="mt-2">
+                            <summary class="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">
+                                📊 Bekijk verzonden data
+                            </summary>
+                            <div class="mt-2 p-2 bg-white rounded border text-xs font-mono">
+                                ${Object.entries(event.data)
+                                    .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+                                    .map(([key, value]) => `
+                                        <div class="py-1">
+                                            <span class="text-gray-600">${key}:</span> 
+                                            <span class="text-gray-900">${value}</span>
+                                        </div>
+                                    `).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
+                </div>
+            `).join('');
                     </div>
                 </div>
             `).join('');
