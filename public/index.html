@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Tester Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">🎯 Tracking Tester</h1>
+                <p class="text-gray-600">Test jouw website tracking in enkele seconden</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Input Section -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-semibold mb-4">Test Configuratie</h2>
+                        
+                        <form id="testForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Website URL
+                                </label>
+                                <input 
+                                    type="url" 
+                                    name="url" 
+                                    value="https://www.koelservicefriesland.com/"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="https://example.com"
+                                >
+                            </div>
+
+                            <div class="border-t pt-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="font-medium">Modus</h3>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="radio" name="mode" value="auto" checked class="mr-3">
+                                        <div>
+                                            <div class="font-medium">🤖 Automatisch</div>
+                                            <div class="text-sm text-gray-600">Detecteert en vult alle formulieren automatisch in</div>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="radio" name="mode" value="manual" class="mr-3">
+                                        <div>
+                                            <div class="font-medium">✋ Handmatig</div>
+                                            <div class="text-sm text-gray-600">Specificeer exact welke velden ingevuld moeten worden</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="manualFields" class="border-t pt-4 hidden">
+                                <h3 class="font-medium mb-3">Formulier Velden</h3>
+                                <div class="space-y-3" id="formFields">
+                                    <div class="flex gap-2 field-row">
+                                        <input type="text" name="selector[]" placeholder="CSS Selector (bijv: #email)" 
+                                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <input type="text" name="value[]" placeholder="Waarde" 
+                                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <button type="button" onclick="removeField(this)" 
+                                                class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="addField()" 
+                                        class="mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm">
+                                    + Veld toevoegen
+                                </button>
+
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Submit Button Selector
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        name="submit_selector" 
+                                        value="button[type='submit']"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="button[type='submit']"
+                                    >
+                                </div>
+                            </div>
+
+                            <button 
+                                type="submit"
+                                class="w-full py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
+                            >
+                                🚀 Start Tracking Test
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="space-y-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-900 mb-2">💡 Hoe werkt het?</h3>
+                        <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                            <li>Vul de URL van je website in</li>
+                            <li>Voeg formulier velden toe</li>
+                            <li>Klik op "Start Test"</li>
+                            <li>Bekijk alle tracking events</li>
+                        </ol>
+                    </div>
+
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-green-900 mb-2">✅ We checken:</h3>
+                        <ul class="text-sm text-green-800 space-y-1">
+                            <li>✓ Google Tag Manager</li>
+                            <li>✓ Google Analytics 4</li>
+                            <li>✓ Google Ads Conversies</li>
+                            <li>✓ Facebook Pixel</li>
+                            <li>✓ Enhanced Conversions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="mt-8 hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">📊 Test Resultaten</h2>
+                    
+                    <div id="loading" class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p class="mt-4 text-gray-600">Test wordt uitgevoerd...</p>
+                    </div>
+
+                    <div id="resultContent" class="hidden">
+                        <!-- Screenshots -->
+                        <div class="mb-6">
+                            <h3 class="font-semibold mb-3">📸 Screenshots</h3>
+                            <div class="grid grid-cols-2 gap-4" id="screenshots"></div>
+                        </div>
+
+                        <!-- Tracking Events -->
+                        <div class="mb-6">
+                            <h3 class="font-semibold mb-3">🎯 Tracking Events</h3>
+                            <div id="events" class="space-y-3"></div>
+                        </div>
+
+                        <!-- Form Actions Log -->
+                        <div class="mb-6">
+                            <h3 class="font-semibold mb-3">📝 Automatische Acties</h3>
+                            <div id="actions" class="bg-gray-50 rounded-lg p-4 font-mono text-sm space-y-1"></div>
+                        </div>
+
+                        <!-- Network Requests -->
+                        <div>
+                            <h3 class="font-semibold mb-3">🌐 Network Requests</h3>
+                            <div id="requests" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle manual/auto mode
+        document.querySelectorAll('input[name="mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const manualFields = document.getElementById('manualFields');
+                if (e.target.value === 'manual') {
+                    manualFields.classList.remove('hidden');
+                } else {
+                    manualFields.classList.add('hidden');
+                }
+            });
+        });
+
+        function addField() {
+            const container = document.getElementById('formFields');
+            const row = document.createElement('div');
+            row.className = 'flex gap-2 field-row';
+            row.innerHTML = `
+                <input type="text" name="selector[]" placeholder="CSS Selector" 
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
+                <input type="text" name="value[]" placeholder="Waarde" 
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
+                <button type="button" onclick="removeField(this)" 
+                        class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm">
+                    ✕
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeField(button) {
+            button.closest('.field-row').remove();
+        }
+
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const mode = formData.get('mode');
+            
+            const data = {
+                url: formData.get('url'),
+                mode: mode,
+                headless: false // Show browser for live view
+            };
+
+            if (mode === 'manual') {
+                data.submit_selector = formData.get('submit_selector');
+                data.fields = [];
+                
+                const selectors = formData.getAll('selector[]');
+                const values = formData.getAll('value[]');
+                
+                for (let i = 0; i < selectors.length; i++) {
+                    if (selectors[i] && values[i]) {
+                        data.fields.push({
+                            selector: selectors[i],
+                            value: values[i]
+                        });
+                    }
+                }
+            }
+
+            // Show results section
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('resultContent').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResults(result.data);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Er ging iets mis: ' + error.message);
+            }
+
+            document.getElementById('loading').classList.add('hidden');
+        });
+
+        function displayResults(data) {
+            document.getElementById('resultContent').classList.remove('hidden');
+
+            // Screenshots
+            const screenshotsDiv = document.getElementById('screenshots');
+            screenshotsDiv.innerHTML = data.screenshots.map(img => `
+                <div class="border rounded-lg p-2">
+                    <img src="${img}" class="w-full rounded" alt="Screenshot">
+                </div>
+            `).join('');
+
+            // Events
+            const eventsDiv = document.getElementById('events');
+            eventsDiv.innerHTML = data.events.map(event => `
+                <div class="border rounded-lg p-4 ${event.status === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-semibold">${event.platform}</span>
+                        <span class="px-2 py-1 rounded text-xs ${event.status === 'success' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                            ${event.status}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-700">
+                        <strong>Event:</strong> ${event.event_name}<br>
+                        ${event.details ? `<strong>Details:</strong> ${event.details}` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            // Actions log
+            if (data.actions) {
+                const actionsDiv = document.getElementById('actions');
+                actionsDiv.innerHTML = data.actions.map(action => {
+                    let color = 'text-gray-700';
+                    if (action.includes('✓')) color = 'text-green-600';
+                    if (action.includes('✗')) color = 'text-red-600';
+                    if (action.includes('🚀')) color = 'text-blue-600 font-bold';
+                    if (action.includes('⚠')) color = 'text-yellow-600';
+                    
+                    return `<div class="${color}">${action}</div>`;
+                }).join('');
+            }
+
+            // Requests
+            const requestsDiv = document.getElementById('requests');
+            requestsDiv.innerHTML = data.requests.slice(0, 10).map(req => `
+                <div class="border rounded p-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs">${req.method} ${req.url.substring(0, 60)}...</span>
+                        <span class="px-2 py-1 rounded text-xs ${req.status < 400 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${req.status}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

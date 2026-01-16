@@ -1,0 +1,20 @@
+{
+  "name": "tracking-tester",
+  "version": "1.0.0",
+  "description": "Web-based tracking testing tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tester.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "proxy-agent": "^6.5.0",
+    "puppeteer": "^23.0.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "author": "Kevin",
+  "license": "MIT"
+}
